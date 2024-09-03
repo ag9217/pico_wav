@@ -10,3 +10,4 @@ struct command {
     const char *help;
 };
 
+extern struct command commands[];

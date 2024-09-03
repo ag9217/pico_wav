@@ -12,6 +12,7 @@ pico_sdk_init()
 add_executable(pico_mp3
         main.c
         console.c
+        commands.c
         )
 
 target_link_libraries(pico_mp3

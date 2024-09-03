@@ -4,12 +4,9 @@
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
 #include "pico/mutex.h"
-#include "commands.h"
 
 // console line settings
 #define LINE_LEN 80
-
-extern struct command commands;
 
 void console();
 void init_console(char * line_buffer, char * command_line_buffer);

@@ -1,6 +1,9 @@
 #include "console.h"
+#include "commands.h"
 
 char command_line_buffer[LINE_LEN + 1];
+
+// TODO: Use LogLevels to log various stages
 
 void console() {
     int16_t c; // 16 bit to handle potential error codes
@@ -91,18 +94,20 @@ uint8_t delete_char(char * buffer) {
 }
 
 void command_processor(char * buffer) {
-    // help message
-    const char * HELP =
-      "Pi Pico Basic Command Prompt - A simple 80 character command\n"
-      "line buffer used to control the Pi Pico\n"
-      "Commands:\n"
-      "help - Display this help message\n";
+    uint8_t i = 0;
 
     if (strlen(buffer) == 0)
         return;
 
-    else if (strcmp(buffer, "help") == 0)
-        printf("%s", HELP);
+    while(strcmp(commands[i].name, "") != 0) {
+        if(strcmp(buffer, commands[i].name) == 0) {
+            commands[i].execute();
+            return;
+        }
+        else
+            i++;
+    }
 
-    else printf("Unknown command %s, enter help command for help.\n", buffer);
+    printf("Unknown command %s, enter help command for help.\n", buffer);
+    return;
 }
