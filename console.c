@@ -16,8 +16,11 @@ void console() {
         c = getchar();
 
         // escape sequence
-        if (c == 0x1b) {
+        if (c == 0x1b || c == 0x03) {
             flush_input();
+            printf("\n");
+            cursor = clear_buffer(line_buffer);
+            printf("> ");
             continue;
         }
 
