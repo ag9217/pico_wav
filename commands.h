@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include "pico/stdlib.h"
 #include <stdint.h>
 #include <string.h>
