@@ -3,12 +3,7 @@
 void print_help() {
     uint8_t i = 0;
 
-    // help message
-    const char * HELP =
-      "Commands:\n";
-
-    printf("%s", HELP);
-
+    printf("Commands:\n");
     while(strcmp(commands[i].name, "") != 0) {
         printf("%s - %s\n", commands[i].name, commands[i].help);
         i++;
