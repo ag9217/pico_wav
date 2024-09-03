@@ -16,5 +16,9 @@
 int main() {
     stdio_init_all();
 
+    // Setting up GPIO
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+
     console();
 }

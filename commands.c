@@ -5,7 +5,6 @@ void print_help() {
 
     // help message
     const char * HELP =
-      "Pi Pico Basic Command Prompt - A simple 80 character command\n"
       "Commands:\n";
 
     printf("%s", HELP);
@@ -16,8 +15,20 @@ void print_help() {
     }
 }
 
+void led_toggle() {
+    static bool led_state = 0;
+
+    if(!led_state)
+        gpio_put(PICO_DEFAULT_LED_PIN, true);
+    else
+        gpio_put(PICO_DEFAULT_LED_PIN, false);
+
+    led_state = !led_state;
+}
+
 struct command commands[] ={
     {"help", print_help, "Display this help command"},
+    {"led", led_toggle, "Toggle onboard LED"},
     {"",0,""}
 };
 
