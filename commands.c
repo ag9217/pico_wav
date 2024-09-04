@@ -1,16 +1,18 @@
 #include "commands.h"
+#include "log.h"
 
-void print_help() {
+static void print_help() {
     uint8_t i = 0;
 
     printf("Commands:\n");
-    while(strcmp(commands[i].name, "") != 0) {
+    while(commands[i].execute) {
         printf("%s - %s\n", commands[i].name, commands[i].help);
         i++;
     }
+    Log(LOG_DEBUG, "Printed from help function!", 0);
 }
 
-void led_toggle() {
+static void led_toggle() {
     static bool led_state = 0;
 
     if(!led_state)
@@ -18,6 +20,7 @@ void led_toggle() {
     else
         gpio_put(PICO_DEFAULT_LED_PIN, false);
 
+    Log(LOG_DEBUG, "LED toggled!", 0);
     led_state = !led_state;
 }
 

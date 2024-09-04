@@ -13,6 +13,7 @@ add_executable(pico_mp3
         main.c
         console.c
         commands.c
+        log.c
         )
 
 target_link_libraries(pico_mp3
