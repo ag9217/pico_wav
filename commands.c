@@ -20,8 +20,8 @@ static void led_toggle() {
     else
         gpio_put(PICO_DEFAULT_LED_PIN, false);
 
-    Log(LOG_DEBUG, "LED toggled!", 0);
     led_state = !led_state;
+    Log(LOG_DEBUG, "LED toggled!", led_state);
 }
 
 struct command commands[] ={
