@@ -29,10 +29,15 @@ static void led_toggle() {
     Log(LOG_DEBUG, "LED toggled!", led_state);
 }
 
+static void print_logs() {
+    log_print_all();
+}
+
 struct command commands[] ={
     {"help", print_help, "Display this help command"},
     {"led", led_toggle, "Toggle onboard LED"},
     {"bootrom", bootrom_boot, "Reboot to boorom"},
+    {"logs", print_logs, "Print all logs"},
     {"",0,""}
 };
 
