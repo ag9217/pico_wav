@@ -23,7 +23,11 @@ void log_init(uint8_t level, bool enable) {
 }
 
 void Log(enum log_level ll, char *msg, int num) {
+    // grab time of log
+    time_t log_time = clock();
+    double seconds_since_log = difftime(log_time, time(0));
+
     if (!logger.silent && ll >= logger.level) {
-        printf("%s - %s - %d\n", level_strings[ll], msg, num);
+        printf("%f %s %s %d\n", seconds_since_log, level_strings[ll], msg, num);
     }
 }

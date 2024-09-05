@@ -1,5 +1,10 @@
 #include "commands.h"
 #include "log.h"
+#include "pico/bootrom.h"
+
+static void bootrom_boot() {
+    reset_usb_boot(0,0);
+}
 
 static void print_help() {
     uint8_t i = 0;
@@ -27,6 +32,7 @@ static void led_toggle() {
 struct command commands[] ={
     {"help", print_help, "Display this help command"},
     {"led", led_toggle, "Toggle onboard LED"},
+    {"bootrom", bootrom_boot, "Reboot to boorom"},
     {"",0,""}
 };
 

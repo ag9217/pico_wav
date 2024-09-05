@@ -4,8 +4,8 @@
 char command_line_buffer[LINE_LEN + 1];
 
 // TODO: Create dmesg type comand to view previous prints,
-//       will likely need log_event struct stored in logger struct array
-// TODO: Add time to log
+//       will likely need log_event struct stored in logger struct array,
+//       and FIFO structure
 
 void console() {
     int16_t c; // 16 bit to handle potential error codes
