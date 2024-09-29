@@ -14,10 +14,12 @@ add_executable(pico_mp3
         console.c
         commands.c
         log.c
+        sd.c
         )
 
 target_link_libraries(pico_mp3
         pico_stdlib              # for core functionality
+        hardware_spi
         pico_multicore
         )
 

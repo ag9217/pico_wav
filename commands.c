@@ -1,5 +1,6 @@
 #include "commands.h"
 #include "log.h"
+#include "sd.h"
 #include "pico/bootrom.h"
 
 static void bootrom_boot() {
@@ -21,9 +22,9 @@ static void led_toggle() {
     static bool led_state = 0;
 
     if(!led_state)
-        gpio_put(PICO_DEFAULT_LED_PIN, true);
+        gpio_put(PICO_DEFAULT_LED_PIN, 1);
     else
-        gpio_put(PICO_DEFAULT_LED_PIN, false);
+        gpio_put(PICO_DEFAULT_LED_PIN, 0);
 
     led_state = !led_state;
     Log(LOG_DEBUG, "LED toggled!", led_state);
@@ -33,11 +34,17 @@ static void print_logs() {
     log_print_all();
 }
 
+static void sd_card_test() {
+    int ret = 0;
+    ret = sd_card.init();
+}
+
 struct command commands[] ={
     {"help", print_help, "Display this help command"},
     {"led", led_toggle, "Toggle onboard LED"},
     {"bootrom", bootrom_boot, "Reboot to boorom"},
     {"logs", print_logs, "Print all logs"},
+    {"sd_test", sd_card_test, "Test SD card"},
     {"",0,""}
 };
 
