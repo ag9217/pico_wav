@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "pico/stdlib.h"
+#include "sd.h"
 #include <stdint.h>
 #include <string.h>
 

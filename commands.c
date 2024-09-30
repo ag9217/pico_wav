@@ -1,6 +1,5 @@
 #include "commands.h"
 #include "log.h"
-#include "sd.h"
 #include "pico/bootrom.h"
 
 static void bootrom_boot() {
