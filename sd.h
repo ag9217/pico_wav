@@ -6,6 +6,7 @@
 #include "hardware/spi.h"
 
 #define BUF_LEN 256
+#define SPI_CMD_LEN 6
 #define CS_PIN 22
 #define R1_TIMEOUT 3
 
@@ -37,6 +38,12 @@
 #define CMD55 0x37
 /** READ_OCR - read the OCR register of a card */
 #define CMD58 0x3A
+/** SET_WR_BLK_ERASE_COUNT - Set the number of write blocks to be
+     pre-erased before writing */
+#define ACMD23 0x17
+/** SD_SEND_OP_COMD - Sends host capacity support information and
+    activates the card's initialization process */
+#define ACMD41 0x29
 
 /** status for card in the ready state */
 #define R1_READY_STATE 0x00

@@ -1,5 +1,6 @@
 #include "sd.h"
 #include "log.h"
+#include <pico/time.h>
 
 struct sd sd_card = {
     .buf_len = BUF_LEN,
@@ -24,6 +25,12 @@ static void printbuf(uint8_t buf[], size_t len) {
     }
 }
 
+static void clear_input_buf() {
+    // clear input buffer
+    for (int i = 0; i < BUF_LEN; i++)
+        sd_card.in_buf[i] = 0;
+}
+
 static int sd_spi_mode_init() {
     /* Procedure is as follows:
      *      1. wait for 1 millisecond
@@ -32,11 +39,12 @@ static int sd_spi_mode_init() {
      *      4. send CMD0 with CS low to reset card
      */
     // setting CS pin high to initialise SPI mode
+
+    int ret = -1;
+
     gpio_init(CS_PIN);
     gpio_set_dir(CS_PIN, GPIO_OUT);
     gpio_put(CS_PIN, 1);
-
-    int ret = -1;
 
     // Sending at least 74 clocks pulses
     sleep_ms(1);
@@ -60,13 +68,13 @@ static int sd_spi_mode_init() {
 
         if (sd_card.in_buf[i] == R1_IDLE_STATE) {
             ret = 0;
+            sleep_us(10);
+            gpio_put(CS_PIN, 1);
             printbuf(sd_card.in_buf, i+1);
             Log(LOG_DEBUG, "Got 0x01 R1 response", ret);
             break;
         }
     }
-    sleep_us(10);
-    gpio_put(CS_PIN, 1);
 
     // if no 0x01 R1 response found
     if (ret) {
@@ -99,7 +107,21 @@ static int sd_init() {
     }
 
     //CMD8
-    sd_card.write(CMD8, 0x1AA);
+    sd_card.write(CMD8, 0x1aa);
+    sd_card.read(6);
+
+    // first byte is NCR
+    uint8_t R1 = sd_card.in_buf[1];
+    // remaining 4 bytes are R7, first two are 0x00 because of 0x000001aa sent
+    uint8_t R7_b1 = sd_card.in_buf[4];
+    uint8_t R7_b2 = sd_card.in_buf[5];
+
+    if (R1 == 0x01 && R7_b1 == 0x01 && R7_b2 == 0xaa)
+        Log(LOG_DEBUG, "Got matched R7 response", 0);
+    else {
+        Log(LOG_ERROR, "Did not receive matched R7 response", -2);
+        return -2;
+    }
 
     return ret;
 }
@@ -109,16 +131,40 @@ static int sd_close() {
 }
 
 static int sd_read(uint8_t len) {
-    return 0;
+    uint8_t ret = 0;
+
+    uint8_t ones[len];
+    memset(ones, 0xff, sizeof(ones));
+
+    clear_input_buf();
+
+    // sleep before reading
+    sleep_ms(10);
+
+    gpio_put(CS_PIN, 0);
+    spi_write_read_blocking(spi_default, ones, sd_card.in_buf, sizeof(ones));
+    sleep_us(10);
+    gpio_put(CS_PIN, 1);
+
+    printbuf(sd_card.in_buf, len);
+
+    return ret;
 }
 
 static int sd_write(uint8_t CMD, uint32_t arg) {
     uint8_t ret = 0;
-    uint8_t CRC = 0x01;
+    uint8_t CRC = 0xff;
+    uint8_t ones[1];
+    memset(ones, 0xff, sizeof(ones));
 
-    // clear input buffer
-    for (int i = 0; i < BUF_LEN; i++)
-        sd_card.in_buf[i] = 0;
+    clear_input_buf();
+
+    // sleep before writing
+    sleep_ms(10);
+
+    // dummy clock cycles before writing
+    spi_write_read_blocking(spi_default, ones, NULL, sizeof(ones));
+    sleep_us(10);
 
     const uint32_t a0 = (arg & 0xff000000) >> 24;
     const uint32_t a1 = (arg & 0x00ff0000) >> 16;
@@ -128,10 +174,10 @@ static int sd_write(uint8_t CMD, uint32_t arg) {
     if (CMD == CMD0) CRC = 0x95;
     if (CMD == CMD8) CRC = 0x87;
 
-    uint8_t msg[6] = { 0x40 | CMD0 , a0, a1, a2, a3, CRC };
+    uint8_t msg[SPI_CMD_LEN] = { 0x40 | CMD , a0, a1, a2, a3, CRC };
 
     gpio_put(CS_PIN, 0);
-    ret = spi_write_read_blocking(spi_default, msg, sd_card.in_buf, 6);
+    ret = spi_write_read_blocking(spi_default, msg, sd_card.in_buf, SPI_CMD_LEN);
     sleep_us(10);
     gpio_put(CS_PIN, 1);
     return ret;
