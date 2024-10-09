@@ -39,9 +39,6 @@ static int sd_spi_mode_init() {
      *      4. send CMD0 with CS low to reset card
      */
     // setting CS pin high to initialise SPI mode
-
-    int ret = -1;
-
     gpio_init(CS_PIN);
     gpio_set_dir(CS_PIN, GPIO_OUT);
     gpio_put(CS_PIN, 1);
@@ -50,10 +47,7 @@ static int sd_spi_mode_init() {
     sleep_ms(1);
     uint8_t ones[10];
     memset(ones, 0xff, sizeof(ones));
-    uint32_t start = get_absolute_time();
-    do {
-        spi_write_blocking(spi_default, ones, sizeof ones);
-    } while (get_absolute_time() - start < 1);
+    spi_write_blocking(spi_default, ones, sizeof ones);
 
     // CMD0
     sd_card.write(CMD0, 0x00);
@@ -67,27 +61,21 @@ static int sd_spi_mode_init() {
         spi_write_read_blocking(spi_default, ones, sd_card.in_buf, 1);
 
         if (sd_card.in_buf[i] == R1_IDLE_STATE) {
-            ret = 0;
             sleep_us(10);
             gpio_put(CS_PIN, 1);
             printbuf(sd_card.in_buf, i+1);
-            Log(LOG_DEBUG, "Got 0x01 R1 response", ret);
-            break;
+            Log(LOG_DEBUG, "Got 0x01 R1 response", 0);
+            return 0;
         }
     }
 
-    // if no 0x01 R1 response found
-    if (ret) {
-        Log(LOG_DEBUG, "No R1 response found", ret);
-        printbuf(sd_card.in_buf, R1_TIMEOUT);
-    }
+    Log(LOG_DEBUG, "No R1 response found", -1);
+    printbuf(sd_card.in_buf, R1_TIMEOUT);
 
-    return ret;
+    return -1;
 }
 
 static int sd_init() {
-    int ret = 0;
-
     gpio_set_function(PICO_DEFAULT_SPI_RX_PIN, GPIO_FUNC_SPI);
     gpio_set_function(PICO_DEFAULT_SPI_SCK_PIN, GPIO_FUNC_SPI);
     gpio_set_function(PICO_DEFAULT_SPI_TX_PIN, GPIO_FUNC_SPI);
@@ -106,7 +94,7 @@ static int sd_init() {
         return -1;
     }
 
-    //CMD8
+    // CMD8
     sd_card.write(CMD8, 0x1aa);
     sd_card.read(6);
 
@@ -120,10 +108,48 @@ static int sd_init() {
         Log(LOG_DEBUG, "Got matched R7 response", 0);
     else {
         Log(LOG_ERROR, "Did not receive matched R7 response", -2);
+        //TODO: continue flow of receiving invalid R7 response
         return -2;
     }
 
-    return ret;
+    // ACMD41, ACMDs start with CMD55
+    // 0x00 R1 response byte can take up to 1 second to arrive
+    uint32_t start_ms = to_ms_since_boot(get_absolute_time());
+    do {
+        sd_card.write(CMD55, 0);
+        sd_card.read(2);
+        sd_card.write(ACMD41, 0x40000000);
+        sd_card.read(2);
+
+        if(sd_card.in_buf[0] == R1_READY_STATE || sd_card.in_buf[1] == R1_READY_STATE) {
+            Log(LOG_DEBUG, "ACMD41 0x00 R1 response", 0);
+            break;
+        }
+    } while (to_ms_since_boot(get_absolute_time()) - start_ms < 1000);
+
+    // TODO: try not to duplicate code here
+    // if time difference is longer than a second, no 0x00 R1 response was found
+    if (to_ms_since_boot(get_absolute_time()) - start_ms > 1000) {
+        Log(LOG_ERROR, "Did not receive 0x01 R1 response from ACMD41", -3);
+        return -3;
+    }
+
+    // CMD58
+    sd_card.write(CMD58, 0);
+    // NCR (1 byte) + R1 (1 byte) + R3 (4 bytes)
+    sd_card.read(6);
+
+    // bit 30 in OCR is set high, meaning SDHC card
+    if ((sd_card.in_buf[2] & 0x40) == 0x40)
+        Log(LOG_DEBUG, "SDHC card detected", 0);
+    else {
+        Log(LOG_ERROR, "Only SDHC cards are supported", -4);
+        return -4;
+    }
+
+    Log(LOG_INFO, "SD card initialised", 0);
+
+    return 0;
 }
 
 static int sd_close() {
