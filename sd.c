@@ -104,13 +104,11 @@ static int sd_init() {
     uint8_t R7_b1 = sd_card.in_buf[4];
     uint8_t R7_b2 = sd_card.in_buf[5];
 
-    if (R1 == 0x01 && R7_b1 == 0x01 && R7_b2 == 0xaa)
-        Log(LOG_DEBUG, "Got matched R7 response", 0);
-    else {
+    if (R1 != 0x01 || (R7_b1 != 0x01 && R7_b2 != 0xaa)) {
         Log(LOG_ERROR, "Did not receive matched R7 response", -2);
-        //TODO: continue flow of receiving invalid R7 response
         return -2;
     }
+    Log(LOG_DEBUG, "Got matched R7 response", 0);
 
     // ACMD41, ACMDs start with CMD55
     // 0x00 R1 response byte can take up to 1 second to arrive
@@ -140,12 +138,12 @@ static int sd_init() {
     sd_card.read(6);
 
     // bit 30 in OCR is set high, meaning SDHC card
-    if ((sd_card.in_buf[2] & 0x40) == 0x40)
-        Log(LOG_DEBUG, "SDHC card detected", 0);
-    else {
+    if ((sd_card.in_buf[2] & 0x40) != 0x40) {
         Log(LOG_ERROR, "Only SDHC cards are supported", -4);
         return -4;
     }
+
+    Log(LOG_DEBUG, "SDHC card detected", 0);
 
     Log(LOG_INFO, "SD card initialised", 0);
 

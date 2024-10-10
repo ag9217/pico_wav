@@ -4,6 +4,7 @@ static struct {
     uint8_t level;
     uint8_t num_logs;
     bool silent;
+    //TODO: make logs a circular buffer
     log_event *logs[100];
 } logger;
 
