@@ -52,18 +52,13 @@ static int sd_spi_mode_init() {
     // CMD0
     sd_card.write(CMD0, 0x00);
 
-    // NCR time
-    gpio_put(CS_PIN, 0);
-    spi_write_read_blocking(spi_default, ones, NULL, 1);
-
     // looking for R1 response
     for (int i = 0; i < R1_TIMEOUT; i++) {
-        spi_write_read_blocking(spi_default, ones, sd_card.in_buf, 1);
+        sd_card.read(1);
 
         if (sd_card.in_buf[i] == R1_IDLE_STATE) {
             sleep_us(10);
             gpio_put(CS_PIN, 1);
-            printbuf(sd_card.in_buf, i+1);
             Log(LOG_DEBUG, "Got 0x01 R1 response", 0);
             return 0;
         }
@@ -96,13 +91,13 @@ static int sd_init() {
 
     // CMD8
     sd_card.write(CMD8, 0x1aa);
-    sd_card.read(6);
+    sd_card.read(5);
 
-    // first byte is NCR
-    uint8_t R1 = sd_card.in_buf[1];
+    // byte 1 is R1
+    uint8_t R1 = sd_card.in_buf[0];
     // remaining 4 bytes are R7, first two are 0x00 because of 0x000001aa sent
-    uint8_t R7_b1 = sd_card.in_buf[4];
-    uint8_t R7_b2 = sd_card.in_buf[5];
+    uint8_t R7_b1 = sd_card.in_buf[3];
+    uint8_t R7_b2 = sd_card.in_buf[4];
 
     if (R1 != 0x01 || (R7_b1 != 0x01 && R7_b2 != 0xaa)) {
         Log(LOG_ERROR, "Did not receive matched R7 response", -2);
@@ -115,11 +110,11 @@ static int sd_init() {
     uint32_t start_ms = to_ms_since_boot(get_absolute_time());
     do {
         sd_card.write(CMD55, 0);
-        sd_card.read(2);
+        sd_card.read(1);
         sd_card.write(ACMD41, 0x40000000);
-        sd_card.read(2);
+        sd_card.read(1);
 
-        if(sd_card.in_buf[0] == R1_READY_STATE || sd_card.in_buf[1] == R1_READY_STATE) {
+        if(sd_card.in_buf[0] == R1_READY_STATE) {
             Log(LOG_DEBUG, "ACMD41 0x00 R1 response", 0);
             break;
         }
@@ -134,17 +129,16 @@ static int sd_init() {
 
     // CMD58
     sd_card.write(CMD58, 0);
-    // NCR (1 byte) + R1 (1 byte) + R3 (4 bytes)
-    sd_card.read(6);
+    // R1 (1 byte) + R3 (4 bytes)
+    sd_card.read(5);
 
     // bit 30 in OCR is set high, meaning SDHC card
-    if ((sd_card.in_buf[2] & 0x40) != 0x40) {
+    if ((sd_card.in_buf[1] & 0x40) != 0x40) {
         Log(LOG_ERROR, "Only SDHC cards are supported", -4);
         return -4;
     }
 
     Log(LOG_DEBUG, "SDHC card detected", 0);
-
     Log(LOG_INFO, "SD card initialised", 0);
 
     return 0;
@@ -166,7 +160,12 @@ static int sd_read(uint8_t len) {
     sleep_ms(10);
 
     gpio_put(CS_PIN, 0);
-    spi_write_read_blocking(spi_default, ones, sd_card.in_buf, sizeof(ones));
+    // read until NCR time is finished
+    do {
+        spi_write_read_blocking(spi_default, ones, sd_card.in_buf, 1);
+    } while (sd_card.in_buf[0] == 0xff);
+
+    spi_write_read_blocking(spi_default, ones, &sd_card.in_buf[1], sizeof(ones)-1);
     sleep_us(10);
     gpio_put(CS_PIN, 1);
 
