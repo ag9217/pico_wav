@@ -8,6 +8,7 @@ static struct {
     log_event *logs[100];
 } logger;
 
+// TODO: make white the same as terminal
 static const char *level_strings[] = {
   "\033[0;35mDEBUG\033[0;37m", "\033[0;32mINFO\033[0;37m", "\033[0;33mWARN\033[0;37m", "\033[0;31mERROR\033[0;37m"
 };
