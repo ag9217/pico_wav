@@ -7,6 +7,7 @@ struct sd sd_card = {
     .init = sd_init,
     .close = sd_close,
     .read = sd_read,
+    .read_block = sd_read_block,
     .write = sd_write
 };
 
@@ -154,7 +155,9 @@ static int sd_close() {
     return 0;
 }
 
-static int sd_read(uint8_t len) {
+static int sd_read(uint32_t len) {
+    // TODO: make read command ignore initial 0xff responses (e.g. for loop until valid response)
+    // since Ncr is variable between 0 to 8 bytes
     uint8_t ret = 0;
 
     uint8_t ones[len];
@@ -205,5 +208,21 @@ static int sd_write(uint8_t CMD, uint32_t arg) {
     sleep_us(10);
     gpio_put(CS_PIN, 1);
     return ret;
+}
+
+static int sd_read_block(uint32_t block_address) {
+    sd_card.write(CMD17, block_address);
+    sd_card.read(3);
+
+    // data token
+    sd_card.read(3);
+
+    // data
+    sd_card.read(512);
+
+    // crc
+    sd_card.read(2);
+
+    return 0;
 }
 

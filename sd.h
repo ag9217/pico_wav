@@ -5,7 +5,7 @@
 #include "pico/time.h"
 #include "hardware/spi.h"
 
-#define BUF_LEN 256
+#define BUF_LEN 512
 #define SPI_CMD_LEN 6
 #define CS_PIN 22
 #define R1_TIMEOUT 3
@@ -70,14 +70,16 @@ struct sd {
 
     int (*init)(void);
     int (*close)(void);
-    int (*read)(uint8_t len);
+    int (*read)(uint32_t len);
+    int (*read_block)(uint32_t len);
     int (*write)(uint8_t CMD, uint32_t arg);
     void (*clear)(void);
 };
 
 static int sd_init();
 static int sd_close();
-static int sd_read(uint8_t len);
+static int sd_read(uint32_t len);
+static int sd_read_block(uint32_t block_address);
 static int sd_write(uint8_t CMD, uint32_t arg);
 static void clear_input_buf();
 

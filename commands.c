@@ -34,8 +34,10 @@ static void print_logs() {
 }
 
 static void sd_card_test() {
-    int ret = 0;
-    ret = sd_card.init();
+    if (sd_card.init() < 0)
+        return;
+
+    sd_card.read_block(0);
 }
 
 struct command commands[] ={
