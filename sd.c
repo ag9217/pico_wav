@@ -211,10 +211,10 @@ static int sd_write(uint8_t CMD, uint32_t arg) {
 
 static int sd_read_block(uint32_t block_address) {
     sd_card.write(CMD17, block_address);
-    sd_card.read(3);
+    sd_card.read(1);
 
     // data token
-    sd_card.read(3);
+    sd_card.read(1);
 
     // data
     sd_card.read(512);
