@@ -10,6 +10,10 @@
 #define CS_PIN 22
 #define R1_TIMEOUT 3
 
+#define MBR_PARTITION_OFFSET 0x01be
+#define MBR_LBS_ABS_FIRST_SECTOR_OFFSET 0x08
+#define MBR_NUM_SECTORS_IN_PARTITION_OFFSET 0x0c
+
 // SD card commands
 /** GO_IDLE_STATE - init card in spi mode if CS low */
 #define CMD0 0x00
@@ -20,7 +24,7 @@
 /** SEND_CID - read the card identification information (CID register) */
 #define CMD10 0x0A
 /** SEND_STATUS - read the card status register */
-#define CMD13 0x0D
+#define CMD13 0x0d
 /** READ_BLOCK - read a single data block from the card */
 #define CMD17 0x11
 /** WRITE_BLOCK - write a single data block to the card */
@@ -37,7 +41,7 @@
 /** APP_CMD - escape for application specific command */
 #define CMD55 0x37
 /** READ_OCR - read the OCR register of a card */
-#define CMD58 0x3A
+#define CMD58 0x3a
 /** SET_WR_BLK_ERASE_COUNT - Set the number of write blocks to be
      pre-erased before writing */
 #define ACMD23 0x17
@@ -52,13 +56,13 @@
 /** status bit for illegal command */
 #define R1_ILLEGAL_COMMAND 0x04
 /** start data token for read or write single block*/
-#define DATA_START_BLOCK 0xFE
+#define DATA_START_BLOCK 0xfe
 /** stop token for write multiple blocks*/
-#define STOP_TRAN_TOKEN 0xFD
+#define STOP_TRAN_TOKEN 0xfd
 /** start data token for write multiple blocks*/
-#define WRITE_MULTIPLE_TOKEN 0xFC
+#define WRITE_MULTIPLE_TOKEN 0xfc
 /** mask for data response tokens after a write block operation */
-#define DATA_RES_MASK 0x1F
+#define DATA_RES_MASK 0x1f
 /** write data accepted token */
 #define DATA_RES_ACCEPTED 0x05
 //-----------------------------------------
@@ -67,6 +71,10 @@ struct sd {
     uint8_t out_buf[BUF_LEN];
     uint8_t in_buf[BUF_LEN];
     uint16_t buf_len;
+
+    //FAT32 related variables
+    uint32_t partition_LBA;
+    uint32_t num_sectors;
 
     int (*init)(void);
     int (*close)(void);
@@ -81,6 +89,7 @@ static int sd_close();
 static int sd_read(uint32_t len);
 static int sd_read_block(uint32_t block_address);
 static int sd_write(uint8_t CMD, uint32_t arg);
+static int sd_fs_init();
 static void clear_input_buf();
 
 extern struct sd sd_card;

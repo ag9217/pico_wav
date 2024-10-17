@@ -15,6 +15,7 @@ add_executable(pico_mp3
         commands.c
         log.c
         sd.c
+        fat.c
         )
 
 target_link_libraries(pico_mp3

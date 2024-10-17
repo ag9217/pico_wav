@@ -1,5 +1,6 @@
 #include "sd.h"
 #include "log.h"
+#include "fat.h"
 #include <pico/time.h>
 
 struct sd sd_card = {
@@ -53,9 +54,13 @@ static int sd_spi_mode_init() {
     // CMD0
     sd_card.write(CMD0, 0x00);
 
+    // NCR time
+    gpio_put(CS_PIN, 0);
+    spi_write_read_blocking(spi_default, ones, NULL, 1);
+
     // looking for R1 response
     for (int i = 0; i < R1_TIMEOUT; i++) {
-        sd_card.read(1);
+        spi_write_read_blocking(spi_default, ones, sd_card.in_buf, 1);
 
         if (sd_card.in_buf[i] == R1_IDLE_STATE) {
             sleep_us(10);
@@ -111,9 +116,9 @@ static int sd_init() {
     uint32_t start_ms = to_ms_since_boot(get_absolute_time());
     do {
         sd_card.write(CMD55, 0);
-        sd_card.read(1);
+        sd_card.read(2);
         sd_card.write(ACMD41, 0x40000000);
-        sd_card.read(1);
+        sd_card.read(2);
 
         if(sd_card.in_buf[0] == R1_READY_STATE) {
             Log(LOG_DEBUG, "ACMD41 0x00 R1 response", 0);
@@ -140,6 +145,9 @@ static int sd_init() {
     }
 
     Log(LOG_DEBUG, "SDHC card detected", 0);
+
+    sd_fs_init();
+
     Log(LOG_INFO, "SD card initialised", 0);
 
     return 0;
@@ -153,6 +161,7 @@ static int sd_read(uint32_t len) {
     // TODO: make read command ignore initial 0xff responses (e.g. for loop until valid response)
     // since Ncr is variable between 0 to 8 bytes
     uint8_t ret = 0;
+    uint8_t count = 0;
 
     uint8_t ones[len];
     memset(ones, 0xff, sizeof(ones));
@@ -166,7 +175,8 @@ static int sd_read(uint32_t len) {
     // read until NCR time is finished
     do {
         spi_write_read_blocking(spi_default, ones, sd_card.in_buf, 1);
-    } while (sd_card.in_buf[0] == 0xff);
+        count++;
+    } while ((sd_card.in_buf[0] == 0xff) && (count < 10));
 
     spi_write_read_blocking(spi_default, ones, &sd_card.in_buf[1], sizeof(ones)-1);
     sleep_us(10);
@@ -210,6 +220,9 @@ static int sd_write(uint8_t CMD, uint32_t arg) {
 }
 
 static int sd_read_block(uint32_t block_address) {
+    uint8_t ones[2];
+    memset(ones, 0xff, sizeof(ones));
+
     sd_card.write(CMD17, block_address);
     sd_card.read(1);
 
@@ -219,9 +232,69 @@ static int sd_read_block(uint32_t block_address) {
     // data
     sd_card.read(512);
 
-    // crc
-    sd_card.read(2);
+    // crc (don't care so just doing regular SPI read)
+    sleep_ms(10);
+    gpio_put(CS_PIN, 0);
+    spi_write_read_blocking(spi_default, ones, NULL, sizeof(ones));
+    sleep_us(10);
+    gpio_put(CS_PIN, 1);
 
     return 0;
 }
 
+static int sd_fs_init() {
+    uint8_t sectors_per_cluster;
+    uint16_t num_reserved_sectors;
+    uint32_t sectors_per_fat;
+    uint32_t root_dir_first_cluster;
+    uint32_t fat_begin_lba;
+    uint32_t cluster_begin_lba;
+
+    uint8_t filename[11];
+    uint8_t attribute;
+    uint16_t first_cluster_high;
+    uint16_t first_cluster_low;
+    uint32_t first_cluster;
+    uint32_t file_size;
+
+    // reading master boot record
+    sd_card.read_block(0);
+
+    sd_card.partition_LBA = big_to_small_endian32(&sd_card.in_buf[MBR_PARTITION_OFFSET + MBR_LBS_ABS_FIRST_SECTOR_OFFSET]);
+    sd_card.num_sectors = big_to_small_endian32(&sd_card.in_buf[MBR_PARTITION_OFFSET + MBR_NUM_SECTORS_IN_PARTITION_OFFSET]);
+
+    sd_card.read_block(sd_card.partition_LBA);
+
+    num_reserved_sectors = big_to_small_endian16(&sd_card.in_buf[FAT32_NUM_RESERVED_SECTORS_OFFSET]);
+    sectors_per_fat = big_to_small_endian32(&sd_card.in_buf[FAT32_SECTORS_PER_FAT]);
+    sectors_per_cluster = sd_card.in_buf[FAT32_SECTORS_PER_CLUSTER_OFFSET];
+    root_dir_first_cluster = big_to_small_endian32(&sd_card.in_buf[FAT32_ROOT_DIR_FIRST_CLUSTER]);
+
+    fat_begin_lba = sd_card.partition_LBA + num_reserved_sectors;
+    cluster_begin_lba = sd_card.partition_LBA + num_reserved_sectors + (FAT32_NUM_FATS * sectors_per_fat);
+
+    sd_card.read_block(cluster_begin_lba + (root_dir_first_cluster - 2) * sectors_per_cluster);
+
+    // for some reason my file is shifted by 0x40
+    memcpy(filename, &sd_card.in_buf[0x40 + FAT32_DIR_NAME_OFFSET], 11);
+    attribute = sd_card.in_buf[0x40 + FAT32_DIR_ATTR_OFFSET];
+    first_cluster_high = big_to_small_endian16(&sd_card.in_buf[0x40 + FAT32_FIRST_CLUSTER_HIGH_OFFSET]);
+    first_cluster_low = big_to_small_endian16(&sd_card.in_buf[0x40 + FAT32_FIRST_CLUSTER_LOW_OFFSET]);
+    first_cluster = (first_cluster_high << 16) | first_cluster_low;
+    file_size = big_to_small_endian32(&sd_card.in_buf[0x40 + FAT32_DIR_FILE_SIZE_OFFSET]);
+
+    for(int i = 0; i < 11; i++) {
+        printf("%c", filename[i]);
+    }
+    printf("\n");
+
+    printf("%d\n", attribute);
+    printf("%d\n", first_cluster_high);
+    printf("%d\n", first_cluster_low);
+    printf("%d\n", first_cluster);
+    printf("%d\n", file_size);
+
+    sd_card.read_block(cluster_begin_lba + (first_cluster - 2) * sectors_per_cluster);
+
+    return 0;
+}
