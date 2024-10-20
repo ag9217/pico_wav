@@ -5,17 +5,22 @@ cmake_minimum_required(VERSION 3.12)
 
 include(pico_sdk_import.cmake)
 
+include_directories(lib/console)
+include_directories(lib/fs)
+include_directories(lib/log)
+include_directories(drivers/)
+
 project(pico_mp3)
 
 pico_sdk_init()
 
 add_executable(pico_mp3
-        main.c
-        console.c
-        commands.c
-        log.c
-        sd.c
-        fat.c
+        src/main.c
+        lib/console/console.c
+        lib/console/commands.c
+        lib/log/log.c
+        drivers/sd.c
+        lib/fs/fat.c
         )
 
 target_link_libraries(pico_mp3
