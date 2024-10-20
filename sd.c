@@ -146,7 +146,10 @@ static int sd_init() {
 
     Log(LOG_DEBUG, "SDHC card detected", 0);
 
-    sd_fs_init();
+    // init fs with sd card
+    fs.blk_dev = &sd_card;
+
+    fs.init();
 
     Log(LOG_INFO, "SD card initialised", 0);
 
@@ -242,59 +245,3 @@ static int sd_read_block(uint32_t block_address) {
     return 0;
 }
 
-static int sd_fs_init() {
-    uint8_t sectors_per_cluster;
-    uint16_t num_reserved_sectors;
-    uint32_t sectors_per_fat;
-    uint32_t root_dir_first_cluster;
-    uint32_t fat_begin_lba;
-    uint32_t cluster_begin_lba;
-
-    uint8_t filename[11];
-    uint8_t attribute;
-    uint16_t first_cluster_high;
-    uint16_t first_cluster_low;
-    uint32_t first_cluster;
-    uint32_t file_size;
-
-    // reading master boot record
-    sd_card.read_block(0);
-
-    sd_card.partition_LBA = big_to_small_endian32(&sd_card.in_buf[MBR_PARTITION_OFFSET + MBR_LBS_ABS_FIRST_SECTOR_OFFSET]);
-    sd_card.num_sectors = big_to_small_endian32(&sd_card.in_buf[MBR_PARTITION_OFFSET + MBR_NUM_SECTORS_IN_PARTITION_OFFSET]);
-
-    sd_card.read_block(sd_card.partition_LBA);
-
-    num_reserved_sectors = big_to_small_endian16(&sd_card.in_buf[FAT32_NUM_RESERVED_SECTORS_OFFSET]);
-    sectors_per_fat = big_to_small_endian32(&sd_card.in_buf[FAT32_SECTORS_PER_FAT]);
-    sectors_per_cluster = sd_card.in_buf[FAT32_SECTORS_PER_CLUSTER_OFFSET];
-    root_dir_first_cluster = big_to_small_endian32(&sd_card.in_buf[FAT32_ROOT_DIR_FIRST_CLUSTER]);
-
-    fat_begin_lba = sd_card.partition_LBA + num_reserved_sectors;
-    cluster_begin_lba = sd_card.partition_LBA + num_reserved_sectors + (FAT32_NUM_FATS * sectors_per_fat);
-
-    sd_card.read_block(cluster_begin_lba + (root_dir_first_cluster - 2) * sectors_per_cluster);
-
-    // for some reason my file is shifted by 0x40
-    memcpy(filename, &sd_card.in_buf[0x40 + FAT32_DIR_NAME_OFFSET], 11);
-    attribute = sd_card.in_buf[0x40 + FAT32_DIR_ATTR_OFFSET];
-    first_cluster_high = big_to_small_endian16(&sd_card.in_buf[0x40 + FAT32_FIRST_CLUSTER_HIGH_OFFSET]);
-    first_cluster_low = big_to_small_endian16(&sd_card.in_buf[0x40 + FAT32_FIRST_CLUSTER_LOW_OFFSET]);
-    first_cluster = (first_cluster_high << 16) | first_cluster_low;
-    file_size = big_to_small_endian32(&sd_card.in_buf[0x40 + FAT32_DIR_FILE_SIZE_OFFSET]);
-
-    for(int i = 0; i < 11; i++) {
-        printf("%c", filename[i]);
-    }
-    printf("\n");
-
-    printf("%d\n", attribute);
-    printf("%d\n", first_cluster_high);
-    printf("%d\n", first_cluster_low);
-    printf("%d\n", first_cluster);
-    printf("%d\n", file_size);
-
-    sd_card.read_block(cluster_begin_lba + (first_cluster - 2) * sectors_per_cluster);
-
-    return 0;
-}

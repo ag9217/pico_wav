@@ -1,3 +1,6 @@
+#ifndef SD_H_
+#define SD_H_
+
 #include "pico/stdlib.h"
 #include <stdio.h>
 #include <stdint.h>
@@ -72,10 +75,6 @@ struct sd {
     uint8_t in_buf[BUF_LEN];
     uint16_t buf_len;
 
-    //FAT32 related variables
-    uint32_t partition_LBA;
-    uint32_t num_sectors;
-
     int (*init)(void);
     int (*close)(void);
     int (*read)(uint32_t len);
@@ -93,3 +92,5 @@ static int sd_fs_init();
 static void clear_input_buf();
 
 extern struct sd sd_card;
+
+#endif

@@ -1,7 +1,11 @@
+#ifndef FAT_H_
+#define FAT_H_
+
 #include "pico/stdlib.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "sd.h"
 
 #define MBR_PARTITION_OFFSET 0x01be
 #define MBR_LBS_ABS_FIRST_SECTOR_OFFSET 0x08
@@ -20,5 +24,25 @@
 
 #define FAT32_NUM_FATS 2
 
+struct fat_block_device {
+    //TODO: Make sd card struct generic block device struct
+    struct sd* blk_dev;
+
+    uint8_t sectors_per_cluster;
+    uint16_t num_reserved_sectors;
+    uint32_t sectors_per_fat;
+    uint32_t root_dir_first_cluster;
+    uint32_t fat_begin_lba;
+    uint32_t cluster_begin_lba;
+    uint32_t partition_LBA;
+    uint32_t num_sectors;
+
+    int (*init)(void);
+};
+
+static int block_fs_init();
 uint32_t big_to_small_endian32(uint8_t num[]);
 uint16_t big_to_small_endian16(uint8_t num[]);
+
+extern struct fat_block_device fs;
+#endif
