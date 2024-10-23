@@ -1,6 +1,8 @@
 #include "commands.h"
 #include "log.h"
+#include "fat.h"
 #include "pico/bootrom.h"
+#include "hardware/watchdog.h"
 
 static void bootrom_boot() {
     reset_usb_boot(0,0);
@@ -36,10 +38,17 @@ static void print_logs() {
 static void sd_card_test() {
     if (sd_card.init() < 0)
         return;
+
+    fs.open("ALARM02 WAV");
 }
 
-struct command commands[] ={
+static void reset() {
+    watchdog_reboot(0, 0, 0);
+}
+
+struct command commands[] = {
     {"help", print_help, "Display this help command"},
+    {"reset", reset, "Soft reset"},
     {"led", led_toggle, "Toggle onboard LED"},
     {"bootrom", bootrom_boot, "Reboot to boorom"},
     {"logs", print_logs, "Print all logs"},

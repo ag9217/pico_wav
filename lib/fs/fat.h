@@ -6,6 +6,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "sd.h"
+#include "file.h"
+#include "log.h"
+
+#define MAX_NUM_FILES 100
 
 #define MBR_PARTITION_OFFSET 0x01be
 #define MBR_LBS_ABS_FIRST_SECTOR_OFFSET 0x08
@@ -27,6 +31,10 @@
 struct fat_block_device {
     //TODO: Make sd card struct generic block device struct
     struct sd* blk_dev;
+    uint8_t fat_sector_offset;
+    uint8_t fat[512];
+    // allow only MAX_NUM_FILES of files for now
+    struct file files[MAX_NUM_FILES];
 
     uint8_t sectors_per_cluster;
     uint16_t num_reserved_sectors;
@@ -38,9 +46,14 @@ struct fat_block_device {
     uint32_t num_sectors;
 
     int (*init)(void);
+    int (*open)(char file_name[]);
 };
 
 static int block_fs_init();
+static void get_files();
+static int search_for_file(char filename[]);
+static int open_file(char file_name[]);
+uint32_t cluster_to_lba(uint32_t cluster);
 uint32_t big_to_small_endian32(uint8_t num[]);
 uint16_t big_to_small_endian16(uint8_t num[]);
 
