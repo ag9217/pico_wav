@@ -70,10 +70,8 @@ static void get_files() {
 static int search_for_file(char filename[]) {
     // searching for file
     for (int i = 0; i < MAX_NUM_FILES; i++) {
-        if(strcmp(filename, (const char *)fs.files[i].filename) == 0) {
-            Log(LOG_DEBUG, "Found file", 0);
+        if(strcmp(filename, (const char *)fs.files[i].filename) == 0)
             return i;
-        }
     }
     for (int i = 0; i < 12; i++) {
         printf("%x", filename[i]);
@@ -83,7 +81,6 @@ static int search_for_file(char filename[]) {
         printf("%x", fs.files[3].filename[i]);
     }
     printf("\n");
-    Log(LOG_ERROR, "Could not find file", -1);
     return -1;
 }
 
@@ -91,8 +88,11 @@ static int open_file(char filename[]) {
     int ret = 0;
 
     ret = search_for_file(filename);
-    if (ret < 0)
+    if (ret < 0) {
+        Log(LOG_ERROR, "Could not find file", -1);
         return -1;
+    }
+    Log(LOG_DEBUG, "Found file", 0);
 
     printf("%s\n", fs.files[ret].filename);
     printf("%d\n", fs.files[ret].attribute);
