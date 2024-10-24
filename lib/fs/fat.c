@@ -103,8 +103,9 @@ static int open_file(char filename[]) {
     printf("%d\n", fs.files[ret].filesize);
 
     // start reading file
-    fs.blk_dev->read_block(fs.fat_begin_lba + fs.fat_sector_offset);
     uint32_t cluster = fs.files[ret].first_cluster;
+    fs.fat_sector_offset = cluster / FAT32_ENTRIES_PER_FAT;
+    fs.blk_dev->read_block(fs.fat_begin_lba + fs.fat_sector_offset);
     do {
         for (int sector_offset = 0; sector_offset < fs.sectors_per_cluster; sector_offset++) {
             fs.blk_dev->read_block(cluster_to_lba(cluster) + sector_offset);
@@ -118,7 +119,8 @@ static int open_file(char filename[]) {
 
         // check fat
         fs.blk_dev->read_block(fs.fat_begin_lba + fs.fat_sector_offset);
-        cluster = big_to_small_endian32(&(fs.blk_dev->in_buf[cluster * 4]));
+        cluster = big_to_small_endian32(&(fs.blk_dev->in_buf[(cluster * 4) % FAT32_ENTRIES_PER_FAT]));
+        fs.fat_sector_offset = cluster / FAT32_ENTRIES_PER_FAT;
     } while(cluster < 0x0ffffff8 || !done_reading);
 
     Log(LOG_DEBUG, "Done reading file", 0);
