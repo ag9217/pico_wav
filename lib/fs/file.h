@@ -10,6 +10,7 @@ struct file {
     // TODO: would like this to just be a is_directory boolean instead
     uint8_t attribute;
     uint32_t first_cluster;
+    uint8_t file_fat_cluster_offset;
     uint32_t filesize;
 };
 #endif

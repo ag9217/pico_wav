@@ -1,4 +1,5 @@
 #include "fat.h"
+#include "log.h"
 
 struct fat_block_device fs = {
     .init = block_fs_init,
@@ -23,7 +24,6 @@ static int block_fs_init() {
     fs.cluster_begin_lba = fs.partition_LBA + fs.num_reserved_sectors + (FAT32_NUM_FATS * fs.sectors_per_fat);
 
     fs.fat_sector_offset = 0;
-    fs.blk_dev->read_block(fs.fat_begin_lba + fs.fat_sector_offset);
 
     // get files
     get_files();
@@ -61,6 +61,7 @@ static void get_files() {
             first_cluster_low = big_to_small_endian16(&(fs.blk_dev->in_buf[0x40 * i + FAT32_FIRST_CLUSTER_LOW_OFFSET]));
             temp_file.first_cluster = (first_cluster_high << 16) | first_cluster_low;
             temp_file.filesize = big_to_small_endian32(&(fs.blk_dev->in_buf[0x40 * i + FAT32_DIR_FILE_SIZE_OFFSET]));
+            temp_file.file_fat_cluster_offset = 0;
 
             fs.files[i] = temp_file;
         }
@@ -86,6 +87,8 @@ static int search_for_file(char filename[]) {
 
 static int open_file(char filename[]) {
     int ret = 0;
+    uint32_t bytes_read = 0;
+    bool done_reading = false;
 
     ret = search_for_file(filename);
     if (ret < 0) {
@@ -96,8 +99,29 @@ static int open_file(char filename[]) {
 
     printf("%s\n", fs.files[ret].filename);
     printf("%d\n", fs.files[ret].attribute);
-    printf("%d\n", fs.files[ret].first_cluster);
+    printf("%x\n", fs.files[ret].first_cluster);
     printf("%d\n", fs.files[ret].filesize);
+
+    // start reading file
+    fs.blk_dev->read_block(fs.fat_begin_lba + fs.fat_sector_offset);
+    uint32_t cluster = fs.files[ret].first_cluster;
+    do {
+        for (int sector_offset = 0; sector_offset < fs.sectors_per_cluster; sector_offset++) {
+            fs.blk_dev->read_block(cluster_to_lba(cluster) + sector_offset);
+            bytes_read += 512;
+
+            if (bytes_read >= fs.files[ret].filesize) {
+                done_reading = true;
+                break;
+            }
+        }
+
+        // check fat
+        fs.blk_dev->read_block(fs.fat_begin_lba + fs.fat_sector_offset);
+        cluster = big_to_small_endian32(&(fs.blk_dev->in_buf[cluster * 4]));
+    } while(cluster < 0x0ffffff8 || !done_reading);
+
+    Log(LOG_DEBUG, "Done reading file", 0);
 
     return 0;
 };

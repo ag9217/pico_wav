@@ -15,6 +15,8 @@ struct sd sd_card = {
 static void printbuf(uint8_t buf[], size_t len) {
     size_t i;
     for (i = 0; i < len; ++i) {
+        if (i % 4 == 0)
+            printf(" ");
         if (i % 16 == 15)
             printf("%02x\n", buf[i]);
         else
@@ -46,7 +48,7 @@ static int sd_spi_mode_init() {
     gpio_put(CS_PIN, 1);
 
     // Sending at least 74 clocks pulses
-    sleep_ms(1);
+    sleep_ms(4);
     uint8_t ones[10];
     memset(ones, 0xff, sizeof(ones));
     spi_write_blocking(spi_default, ones, sizeof ones);
@@ -81,8 +83,8 @@ static int sd_init() {
     gpio_set_function(PICO_DEFAULT_SPI_SCK_PIN, GPIO_FUNC_SPI);
     gpio_set_function(PICO_DEFAULT_SPI_TX_PIN, GPIO_FUNC_SPI);
     gpio_set_function(PICO_DEFAULT_SPI_CSN_PIN, GPIO_FUNC_SPI);
-    // 100 kHz SPI0 bus
-    spi_init(spi0, 1000 * 100);
+    // 10 MHz SPI0 bus
+    spi_init(spi0, SPI_BUS_SPEED);
 
     // Initialize output buffer
     for (size_t i = 0; i < sd_card.buf_len; ++i) {
@@ -172,7 +174,7 @@ static int sd_read(uint32_t len) {
     clear_input_buf();
 
     // sleep before reading
-    sleep_ms(10);
+    sleep_ms(4);
 
     gpio_put(CS_PIN, 0);
     // read until NCR time is finished
@@ -199,7 +201,7 @@ static int sd_write(uint8_t CMD, uint32_t arg) {
     clear_input_buf();
 
     // sleep before writing
-    sleep_ms(10);
+    sleep_ms(4);
 
     // dummy clock cycles before writing
     spi_write_read_blocking(spi_default, ones, NULL, sizeof(ones));
@@ -236,7 +238,7 @@ static int sd_read_block(uint32_t block_address) {
     sd_card.read(512);
 
     // crc (don't care so just doing regular SPI read)
-    sleep_ms(10);
+    sleep_ms(4);
     gpio_put(CS_PIN, 0);
     spi_write_read_blocking(spi_default, ones, NULL, sizeof(ones));
     sleep_us(10);
