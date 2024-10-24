@@ -1,5 +1,4 @@
 #include "fat.h"
-#include "log.h"
 
 struct fat_block_device fs = {
     .init = block_fs_init,
@@ -74,14 +73,6 @@ static int search_for_file(char filename[]) {
         if(strcmp(filename, (const char *)fs.files[i].filename) == 0)
             return i;
     }
-    for (int i = 0; i < 12; i++) {
-        printf("%x", filename[i]);
-    }
-    printf("\n");
-    for (int i = 0; i < 12; i++) {
-        printf("%x", fs.files[3].filename[i]);
-    }
-    printf("\n");
     return -1;
 }
 

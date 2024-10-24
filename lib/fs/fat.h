@@ -2,6 +2,7 @@
 #define FAT_H_
 
 #include "pico/stdlib.h"
+#include "pico/audio_i2s.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

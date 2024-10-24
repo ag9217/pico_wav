@@ -47,7 +47,7 @@ static int sd_spi_mode_init() {
     gpio_set_dir(CS_PIN, GPIO_OUT);
     gpio_put(CS_PIN, 1);
 
-    // Sending at least 74 clocks pulses
+    // sending at least 74 clocks pulses
     sleep_ms(4);
     uint8_t ones[10];
     memset(ones, 0xff, sizeof(ones));
@@ -86,7 +86,7 @@ static int sd_init() {
     // 10 MHz SPI0 bus
     spi_init(spi0, SPI_BUS_SPEED);
 
-    // Initialize output buffer
+    // initialize output buffer
     for (size_t i = 0; i < sd_card.buf_len; ++i) {
         sd_card.out_buf[i] = 0;
     }
@@ -163,8 +163,6 @@ static int sd_close() {
 }
 
 static int sd_read(uint32_t len) {
-    // TODO: make read command ignore initial 0xff responses (e.g. for loop until valid response)
-    // since Ncr is variable between 0 to 8 bytes
     uint8_t ret = 0;
     uint8_t count = 0;
 

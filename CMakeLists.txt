@@ -4,6 +4,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 cmake_minimum_required(VERSION 3.12)
 
 include(pico_sdk_import.cmake)
+include(pico_extras_import.cmake)
 
 include_directories(lib/console)
 include_directories(lib/fs)
@@ -26,6 +27,7 @@ add_executable(pico_mp3
 target_link_libraries(pico_mp3
         pico_stdlib              # for core functionality
         hardware_spi
+        pico_audio_i2s
         pico_multicore
         )
 
