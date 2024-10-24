@@ -1,12 +1,6 @@
+#include <stdio.h>
 #include "console.h"
 #include "log.h"
-
-#define PICO_SPI_RX_PIN  11
-#define PICO_SPI_CSN_PIN 12
-#define PICO_SPI_SCK_PIN 14
-#define PICO_SPI_TX_PIN  15
-
-#include <stdio.h>
 
 int main() {
     stdio_init_all();
