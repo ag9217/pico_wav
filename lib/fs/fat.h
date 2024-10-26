@@ -34,7 +34,6 @@ struct fat_block_device {
     //TODO: Make sd card struct generic block device struct
     struct sd* blk_dev;
     uint8_t fat_sector_offset;
-    uint8_t fat[512];
     // allow only MAX_NUM_FILES of files for now
     struct file files[MAX_NUM_FILES];
 
