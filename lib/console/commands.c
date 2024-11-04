@@ -39,7 +39,7 @@ static void sd_card_test() {
     if (sd_card.init() < 0)
         return;
 
-    fs.open("ALARM02 WAV");
+    fs.open("HI");
 }
 
 static void reset() {
@@ -52,7 +52,7 @@ struct command commands[] = {
     {"led", led_toggle, "Toggle onboard LED"},
     {"bootrom", bootrom_boot, "Reboot to boorom"},
     {"logs", print_logs, "Print all logs"},
-    {"sd_test", sd_card_test, "Test SD card"},
+    {"sd", sd_card_test, "Test SD card"},
     {"",0,""}
 };
 

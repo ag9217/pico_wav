@@ -28,7 +28,7 @@
 #define FAT32_DIR_FILE_SIZE_OFFSET 0x1c
 
 #define FAT32_NUM_FATS 2
-#define FAT32_ENTRIES_PER_FAT 128
+#define FAT32_ENTRIES_PER_FAT 512
 
 struct fat_block_device {
     //TODO: Make sd card struct generic block device struct

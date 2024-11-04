@@ -41,7 +41,7 @@ static void get_files() {
             fs.blk_dev->read_block(cluster_to_lba(fs.root_dir_first_cluster) + sector_offset);
 
             // for some reason my file is shifted by 0x40
-            memcpy(temp_file.filename, &(fs.blk_dev->in_buf[0x40 * i + FAT32_DIR_NAME_OFFSET]), 12);
+            memcpy(temp_file.filename, &(fs.blk_dev->in_buf[0x20 + 0x40 * i + FAT32_DIR_NAME_OFFSET]), 12);
 
             // sanitise filename
             for (int i = 0; i < 11; i++) {
@@ -56,10 +56,10 @@ static void get_files() {
             if (temp_file.attribute == 0)
                 return;
 
-            first_cluster_high = big_to_small_endian16(&(fs.blk_dev->in_buf[0x40 * i + FAT32_FIRST_CLUSTER_HIGH_OFFSET]));
-            first_cluster_low = big_to_small_endian16(&(fs.blk_dev->in_buf[0x40 * i + FAT32_FIRST_CLUSTER_LOW_OFFSET]));
+            first_cluster_high = big_to_small_endian16(&(fs.blk_dev->in_buf[0x20 + 0x40 * i + FAT32_FIRST_CLUSTER_HIGH_OFFSET]));
+            first_cluster_low = big_to_small_endian16(&(fs.blk_dev->in_buf[0x20 + 0x40 * i + FAT32_FIRST_CLUSTER_LOW_OFFSET]));
             temp_file.first_cluster = (first_cluster_high << 16) | first_cluster_low;
-            temp_file.filesize = big_to_small_endian32(&(fs.blk_dev->in_buf[0x40 * i + FAT32_DIR_FILE_SIZE_OFFSET]));
+            temp_file.filesize = big_to_small_endian32(&(fs.blk_dev->in_buf[0x20 + 0x40 * i + FAT32_DIR_FILE_SIZE_OFFSET]));
             temp_file.file_fat_cluster_offset = 0;
 
             fs.files[i] = temp_file;
@@ -88,10 +88,10 @@ static int open_file(char filename[]) {
     }
     Log(LOG_DEBUG, "Found file", 0);
 
-    printf("%s\n", fs.files[ret].filename);
-    printf("%d\n", fs.files[ret].attribute);
-    printf("%x\n", fs.files[ret].first_cluster);
-    printf("%d\n", fs.files[ret].filesize);
+    printf("Filename: %s\n", fs.files[ret].filename);
+    printf("Attribute: %d\n", fs.files[ret].attribute);
+    printf("First cluster: %x\n", fs.files[ret].first_cluster);
+    printf("File size: %d\n", fs.files[ret].filesize);
 
     // start reading file
     uint32_t cluster = fs.files[ret].first_cluster;
