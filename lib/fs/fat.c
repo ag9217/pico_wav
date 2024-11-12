@@ -1,9 +1,64 @@
 #include "fat.h"
 
+#define SAMPLES_PER_BUFFER 256
+uint16_t music_data[66172];
+
 struct fat_block_device fs = {
     .init = block_fs_init,
     .open = open_file
 };
+
+struct audio_buffer_pool *init_audio() {
+
+    static audio_format_t audio_format = {
+            .format = AUDIO_BUFFER_FORMAT_PCM_S16,
+            .sample_freq = 22050,
+            .channel_count = 1,
+    };
+
+    static struct audio_buffer_format producer_format = {
+            .format = &audio_format,
+            .sample_stride = 2
+    };
+
+    struct audio_buffer_pool *producer_pool = audio_new_producer_pool(&producer_format, 3,
+                                                                      SAMPLES_PER_BUFFER); // todo correct size
+    bool __unused ok;
+    const struct audio_format *output_format;
+    struct audio_i2s_config config = {
+            .data_pin = PICO_AUDIO_I2S_DATA_PIN,
+            .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
+            .dma_channel = 0,
+            .pio_sm = 0,
+    };
+
+    output_format = audio_i2s_setup(&audio_format, &config);
+    if (!output_format) {
+        panic("PicoAudio: Unable to open audio device.\n");
+    }
+
+    ok = audio_i2s_connect(producer_pool);
+    assert(ok);
+    audio_i2s_set_enabled(true);
+    return producer_pool;
+}
+
+static void printbuf(uint16_t buf[], size_t len) {
+    size_t i;
+    for (i = 0; i < len; ++i) {
+        if (i % 4 == 0)
+            printf(" ");
+        if (i % 16 == 15)
+            printf("%04x\n", buf[i]);
+        else
+            printf("%04x ", buf[i]);
+    }
+
+    // append trailing newline if there isn't one
+    if (i % 16) {
+        putchar('\n');
+    }
+}
 
 static int block_fs_init() {
     // reading master boot record
@@ -81,6 +136,11 @@ static int open_file(char filename[]) {
     uint32_t bytes_read = 0;
     bool done_reading = false;
 
+    // audio
+    struct audio_buffer_pool *ap = init_audio();
+    struct audio_buffer *buffer = take_audio_buffer(ap, true);
+    uint8_t *samples = buffer->buffer->bytes;
+
     ret = search_for_file(filename);
     if (ret < 0) {
         Log(LOG_ERROR, "Could not find file", -1);
@@ -100,12 +160,26 @@ static int open_file(char filename[]) {
     do {
         for (int sector_offset = 0; sector_offset < fs.sectors_per_cluster; sector_offset++) {
             fs.blk_dev->read_block(cluster_to_lba(cluster) + sector_offset);
-            bytes_read += 512;
 
+            //for (int i = 0; i < 255; i++) {
+            //    music_data[i] = (uint16_t)((fs.blk_dev->in_buf[(i*2)+1] << 8 ) | (fs.blk_dev->in_buf[(i*2)]));
+            //}
+            //printbuf(music_data, 256);
+            //printf("\n");
+
+            //printbuf(samples, 256);
+            for (int i = 0; i < 512; i++) {
+                samples[i] = fs.blk_dev->in_buf[i];
+            }
+
+            bytes_read += 512;
             if (bytes_read >= fs.files[ret].filesize) {
                 done_reading = true;
                 break;
             }
+
+            buffer->sample_count = buffer->max_sample_count;
+            give_audio_buffer(ap, buffer);
         }
 
         // check fat
@@ -113,6 +187,18 @@ static int open_file(char filename[]) {
         cluster = big_to_small_endian32(&(fs.blk_dev->in_buf[(cluster * 4) % FAT32_ENTRIES_PER_FAT]));
         fs.fat_sector_offset = cluster / FAT32_ENTRIES_PER_FAT;
     } while(cluster < 0x0ffffff8 || !done_reading);
+
+    //uint j = 0;
+    //printf("Buffer max sample count: %d\n", buffer->max_sample_count);
+    //while (j < 250) {
+    //    for (int i = 0; i < 256; i++) {
+    //        samples[i] = (music_data[256*j + i]) >> 8u;
+    //    }
+    //    buffer->sample_count = buffer->max_sample_count;
+    //    give_audio_buffer(ap, buffer);
+    //    j++;
+    //}
+
 
     Log(LOG_DEBUG, "Done reading file", 0);
 
