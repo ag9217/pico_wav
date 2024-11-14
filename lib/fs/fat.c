@@ -1,11 +1,6 @@
 #include "fat.h"
-#include "hardware/clocks.h"
-#include "hardware/structs/clocks.h"
 
 #define SAMPLES_PER_BUFFER 256
-
-#include "pico/binary_info.h"
-bi_decl(bi_3pins_with_names(PICO_AUDIO_I2S_DATA_PIN, "I2S DIN", PICO_AUDIO_I2S_CLOCK_PIN_BASE, "I2S BCK", PICO_AUDIO_I2S_CLOCK_PIN_BASE+1, "I2S LRCK"));
 
 struct fat_block_device fs = {
     .init = block_fs_init,
