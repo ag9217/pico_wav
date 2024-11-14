@@ -18,9 +18,9 @@ static void printbuf(uint8_t buf[], size_t len) {
         if (i % 4 == 0)
             printf(" ");
         if (i % 16 == 15)
-            printf("%02x\n", buf[i]);
+            printf("%d\n", buf[i]);
         else
-            printf("%02x ", buf[i]);
+            printf("%d ", buf[i]);
     }
 
     // append trailing newline if there isn't one
@@ -185,7 +185,7 @@ static int sd_read(uint32_t len) {
     sleep_us(10);
     gpio_put(CS_PIN, 1);
 
-    printbuf(sd_card.in_buf, len);
+    //printbuf(sd_card.in_buf, len);
 
     return ret;
 }
