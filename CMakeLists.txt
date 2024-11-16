@@ -11,7 +11,8 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(lib/console)
 include_directories(lib/fs)
 include_directories(lib/log)
-include_directories(drivers/)
+include_directories(drivers/audio)
+include_directories(drivers/sd)
 
 project(pico_wav)
 
@@ -22,7 +23,8 @@ add_executable(pico_wav
         lib/console/console.c
         lib/console/commands.c
         lib/log/log.c
-        drivers/sd.c
+        drivers/sd/sd.c
+        drivers/audio/audio.c
         lib/fs/fat.c
         )
 

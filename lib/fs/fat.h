@@ -2,13 +2,13 @@
 #define FAT_H_
 
 #include "pico/stdlib.h"
-#include "pico/audio_i2s.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include "sd.h"
 #include "file.h"
 #include "log.h"
+#include "audio.h"
 
 #define MAX_NUM_FILES 100
 
