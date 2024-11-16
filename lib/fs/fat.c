@@ -2,7 +2,7 @@
 
 struct fat_block_device fs = {
     .init = block_fs_init,
-    .open = open_file
+    .open_wav = open_wav_file
 };
 
 static int block_fs_init() {
@@ -76,7 +76,7 @@ static int search_for_file(char filename[]) {
     return -1;
 }
 
-static int open_file(char filename[]) {
+static int open_wav_file(char filename[]) {
     int ret = 0;
     uint32_t bytes_read = 0;
     bool done_reading = false;

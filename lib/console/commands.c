@@ -39,7 +39,7 @@ static void sd_card_test() {
     if (sd_card.init() < 0)
         return;
 
-    fs.open("ALARM02 WAV");
+    fs.open_wav("ALARM02 WAV");
 }
 
 static void reset() {

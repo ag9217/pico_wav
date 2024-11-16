@@ -47,13 +47,13 @@ struct fat_block_device {
     uint32_t num_sectors;
 
     int (*init)(void);
-    int (*open)(char file_name[]);
+    int (*open_wav)(char file_name[]);
 };
 
 static int block_fs_init();
 static void get_files();
 static int search_for_file(char filename[]);
-static int open_file(char file_name[]);
+static int open_wav_file(char file_name[]);
 uint32_t cluster_to_lba(uint32_t cluster);
 uint32_t big_to_small_endian32(uint8_t num[]);
 uint16_t big_to_small_endian16(uint8_t num[]);
