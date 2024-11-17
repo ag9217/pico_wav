@@ -164,16 +164,9 @@ static int sd_close() {
 
 static int sd_read(uint32_t len) {
     uint8_t ret = 0;
-    uint32_t data_len = len - 4;
-    // check data length is not greater than our input buffer
-    if (data_len > BUF_LEN) {
-        ret = -1;
-        return ret;
-    }
-
     uint8_t count = 0;
+
     uint8_t ones[len];
-    uint8_t temp[len];
     memset(ones, 0xff, sizeof(ones));
 
     clear_input_buf();
@@ -184,15 +177,15 @@ static int sd_read(uint32_t len) {
     gpio_put(CS_PIN, 0);
     // read until NCR time is finished
     do {
-        spi_write_read_blocking(spi_default, ones, temp, 1);
+        spi_write_read_blocking(spi_default, ones, sd_card.in_buf, 1);
         count++;
     } while ((sd_card.in_buf[0] == 0xff) && (count < 10));
 
-    // first data byte has been read above, so starting index from 1
-    spi_write_read_blocking(spi_default, ones, &temp[1], sizeof(ones)-1);
-    memcpy(sd_card.in_buf, &temp[2], data_len);
+    spi_write_read_blocking(spi_default, ones, &sd_card.in_buf[1], sizeof(ones)-1);
     sleep_us(10);
     gpio_put(CS_PIN, 1);
+
+    //printbuf(sd_card.in_buf, len);
 
     return ret;
 }
@@ -230,8 +223,24 @@ static int sd_write(uint8_t CMD, uint32_t arg) {
 }
 
 static int sd_read_block(uint32_t block_address) {
+    uint8_t ones[2];
+    memset(ones, 0xff, sizeof(ones));
+
     sd_card.write(CMD17, block_address);
-    sd_card.read(516); // 1 byte + data token (1 byte) + data (512 bytes) + crc (2 bytes)
+    sd_card.read(1);
+
+    // data token
+    sd_card.read(1);
+
+    // data
+    sd_card.read(512);
+
+    // crc (don't care so just doing regular SPI read)
+    sleep_ms(4);
+    gpio_put(CS_PIN, 0);
+    spi_write_read_blocking(spi_default, ones, NULL, sizeof(ones));
+    sleep_us(10);
+    gpio_put(CS_PIN, 1);
 
     return 0;
 }
